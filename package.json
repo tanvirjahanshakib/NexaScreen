@@ -1,12 +1,74 @@
 {
   "name": "nexascreen",
-  "version": "0.1.0",
+  "version": "1.0.0",
+  "description": "NexaScreen - LAN Screen Sharing Desktop App",
   "private": true,
+  "homepage": "./",
+  "main": "electron-main.js",
   "workspaces": [
     "host"
   ],
   "scripts": {
     "dev": "npm run dev --workspace host",
-    "start": "npm run start --workspace host"
+    "start": "npm run start --workspace host",
+    "electron-dev": "concurrently \"npm run dev --workspace host\" \"wait-on http://localhost:3000 && electron .\"",
+    "electron-build": "npm run build && electron-builder",
+    "build-exe": "npm install && npm run electron-build -- --win",
+    "build-portable": "npm install && npm run electron-build -- --win --portable"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "express-rate-limit": "^7.4.1",
+    "socket.io": "^4.8.1"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "electron": "^latest",
+    "electron-builder": "^24.6.4",
+    "electron-is-dev": "^3.0.0",
+    "wait-on": "^7.1.0"
+  },
+  "build": {
+    "appId": "com.nexascreen.app",
+    "productName": "NexaScreen",
+    "files": [
+      "electron-main.js",
+      "preload.js",
+      "host/**/*",
+      "viewer/**/*",
+      "node_modules/**/*"
+    ],
+    "directories": {
+      "buildResources": "assets"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64",
+            "ia32"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "certificateFile": null,
+      "certificatePassword": null,
+      "signingHashAlgorithms": [
+        "sha256"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "NexaScreen"
+    }
   }
 }
