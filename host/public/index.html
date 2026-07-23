@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NexaScreen Host</title>
+    <style>
+      body { font-family: Arial, sans-serif; max-width: 900px; margin: 2rem auto; padding: 0 1rem; color: #1f2937; }
+      h1 { margin-bottom: .5rem; }
+      .controls { display: flex; gap: .75rem; margin: 1rem 0; }
+      button { border: none; border-radius: 8px; padding: .7rem 1rem; cursor: pointer; font-weight: 600; }
+      #startBtn { background: #0ea5e9; color: #fff; }
+      #stopBtn { background: #ef4444; color: #fff; }
+      #status { margin: .75rem 0; font-size: .95rem; }
+      video { width: 100%; border-radius: 12px; border: 1px solid #d1d5db; background: #000; }
+      code { background: #f3f4f6; padding: .2rem .4rem; border-radius: 6px; }
+    </style>
+  </head>
+  <body>
+    <h1>NexaScreen Host</h1>
+    <p>Open <code>/viewer</code> from another device on the same LAN, then press Start Share.</p>
+    <div class="controls">
+      <button id="startBtn">Start Share</button>
+      <button id="stopBtn" disabled>Stop Share</button>
+    </div>
+    <p id="status">Idle</p>
+    <video id="preview" autoplay muted playsinline></video>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+      const socket = io();
+      const startBtn = document.getElementById('startBtn');
+      const stopBtn = document.getElementById('stopBtn');
+      const statusEl = document.getElementById('status');
+      const preview = document.getElementById('preview');
+
+      let localStream;
+      let peer;
+      let viewerConnected = false;
+
+      socket.emit('join-role', 'host');
+
+      socket.on('viewer-connected', () => {
+        viewerConnected = true;
+        setStatus('Viewer connected. Ready to share.');
+        if (localStream) {
+          startPeerConnection();
+        }
+      });
+
+      socket.on('viewer-disconnected', () => {
+        viewerConnected = false;
+        closePeer();
+        setStatus('Viewer disconnected. Restart share after viewer reconnects.');
+      });
+
+      socket.on('answer', async (answer) => {
+        if (!peer) return;
+        await peer.setRemoteDescription(answer);
+      });
+
+      socket.on('ice-candidate', async (candidate) => {
+        if (!peer || !candidate) return;
+        try {
+          await peer.addIceCandidate(candidate);
+        } catch (error) {
+          console.error('Failed to add ICE candidate', error);
+        }
+      });
+
+      startBtn.addEventListener('click', async () => {
+        try {
+          localStream = await navigator.mediaDevices.getDisplayMedia({
+            video: { frameRate: { ideal: 30, max: 30 } },
+            audio: false
+          });
+          preview.srcObject = localStream;
+          startBtn.disabled = true;
+          stopBtn.disabled = false;
+          setStatus(viewerConnected ? 'Sharing started. Connecting stream...' : 'Sharing started. Waiting for viewer...');
+
+          localStream.getVideoTracks()[0].addEventListener('ended', () => {
+            stopShare();
+          });
+
+          if (viewerConnected) {
+            await startPeerConnection();
+          }
+        } catch (error) {
+          setStatus('Screen share was blocked or failed.');
+          console.error(error);
+        }
+      });
+
+      stopBtn.addEventListener('click', stopShare);
+
+      async function startPeerConnection() {
+        closePeer();
+        if (!localStream) return;
+
+        peer = new RTCPeerConnection({
+          iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
+          iceCandidatePoolSize: 2
+        });
+
+        localStream.getTracks().forEach((track) => peer.addTrack(track, localStream));
+
+        peer.onicecandidate = (event) => {
+          if (event.candidate) {
+            socket.emit('ice-candidate', { role: 'host', candidate: event.candidate });
+          }
+        };
+
+        peer.onconnectionstatechange = () => {
+          if (!peer) return;
+          if (peer.connectionState === 'connected') {
+            setStatus('Viewer is receiving your screen.');
+          }
+          if (['failed', 'disconnected', 'closed'].includes(peer.connectionState)) {
+            setStatus('Connection ended. Restart share after viewer reconnects.');
+          }
+        };
+
+        const offer = await peer.createOffer({ offerToReceiveVideo: false });
+        await peer.setLocalDescription(offer);
+        socket.emit('offer', offer);
+      }
+
+      function stopShare() {
+        closePeer();
+        if (localStream) {
+          localStream.getTracks().forEach((track) => track.stop());
+          localStream = null;
+        }
+        preview.srcObject = null;
+        startBtn.disabled = false;
+        stopBtn.disabled = true;
+        setStatus('Sharing stopped.');
+      }
+
+      function closePeer() {
+        if (peer) {
+          peer.onicecandidate = null;
+          peer.close();
+          peer = null;
+        }
+      }
+
+      function setStatus(message) {
+        statusEl.textContent = message;
+      }
+    </script>
+  </body>
+</html>

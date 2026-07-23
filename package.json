@@ -1,0 +1,12 @@
+{
+  "name": "nexascreen",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "host"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace host",
+    "start": "npm run start --workspace host"
+  }
+}
