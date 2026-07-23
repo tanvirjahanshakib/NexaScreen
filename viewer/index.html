@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NexaScreen Viewer</title>
+    <link rel="stylesheet" href="/viewer/styles.css" />
+  </head>
+  <body>
+    <main class="layout">
+      <header class="toolbar">
+        <h1>NexaScreen Viewer</h1>
+        <button id="fullscreenBtn">Fullscreen</button>
+      </header>
+      <p id="status">Waiting for host stream...</p>
+      <video id="remoteVideo" autoplay muted playsinline></video>
+    </main>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/viewer/app.js"></script>
+  </body>
+</html>
