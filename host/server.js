@@ -1,4 +1,5 @@
 const express = require('express');
+const rateLimit = require('express-rate-limit');
 const http = require('http');
 const os = require('os');
 const path = require('path');
@@ -14,6 +15,15 @@ const PORT = Number(process.env.PORT) || 3000;
 
 let hostSocketId = null;
 let viewerSocketId = null;
+
+app.use(
+  rateLimit({
+    windowMs: 60 * 1000,
+    max: 120,
+    standardHeaders: true,
+    legacyHeaders: false
+  })
+);
 
 app.use('/viewer', express.static(path.join(__dirname, '..', 'viewer')));
 app.get('/', (_req, res) => {
