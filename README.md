@@ -71,3 +71,29 @@ Use the LAN viewer URL on the second device in the same network.
 - Socket.IO
 - WebRTC
 - Plain HTML/CSS/JS
+
+## Download
+
+You can download the latest release from GitHub:
+
+- **Release page:** https://github.com/tanvirjahanshakib/NexaScreen/releases/tag/v1.0.0
+
+### Install
+
+1. Open the release page.
+2. Download the correct file for your operating system from **Assets**:
+   - Windows: `.exe` or `.msi`
+   - macOS: `.dmg`
+   - Linux: `.AppImage` or `.deb`
+3. Install and run the app.
+
+### If no installer is available
+
+If you don’t see installer files in Assets, run from source:
+
+```bash
+git clone https://github.com/tanvirjahanshakib/NexaScreen.git
+cd NexaScreen
+npm install
+npm run dev
+```
